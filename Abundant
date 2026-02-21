@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abandoned Checkout Tracking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', system-ui, sans-serif; background-color: #F8FAFC; color: #0F172A; }
+    </style>
+</head>
+<body class="p-6 antialiased">
+
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-xl font-bold text-gray-900 tracking-tight">Abandoned Checkouts</h1>
+            <p class="text-sm text-gray-500 mt-1">Direct customer tracking & recovery workflow</p>
+        </div>
+        <div class="px-3 py-1.5 bg-white border border-gray-200 text-xs font-medium text-gray-600 rounded-md shadow-sm flex items-center gap-2">
+            <span class="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></span> Auto-Sync: ON
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-5 gap-4 mb-6">
+        <div class="bg-white p-5 border border-gray-200 rounded-md shadow-sm">
+            <div class="text-[11px] text-gray-500 uppercase font-semibold tracking-wider">Active</div>
+            <div class="text-2xl font-bold mt-1 text-blue-600" id="stat-active">0</div>
+        </div>
+        <div class="bg-white p-5 border border-gray-200 rounded-md shadow-sm">
+            <div class="text-[11px] text-gray-500 uppercase font-semibold tracking-wider">Abandoned</div>
+            <div class="text-2xl font-bold mt-1 text-red-600" id="stat-abandoned">0</div>
+        </div>
+        <div class="bg-white p-5 border border-gray-200 rounded-md shadow-sm">
+            <div class="text-[11px] text-gray-500 uppercase font-semibold tracking-wider">Converted</div>
+            <div class="text-2xl font-bold mt-1 text-green-600" id="stat-converted">0</div>
+        </div>
+        <div class="bg-white p-5 border border-gray-200 rounded-md shadow-sm">
+            <div class="text-[11px] text-gray-500 uppercase font-semibold tracking-wider">Recovery Rate</div>
+            <div class="text-2xl font-bold mt-1 text-gray-900" id="stat-rate">0%</div>
+        </div>
+        <div class="bg-white p-5 border border-gray-200 rounded-md shadow-sm">
+            <div class="text-[11px] text-gray-500 uppercase font-semibold tracking-wider">Lost Revenue</div>
+            <div class="text-2xl font-bold mt-1 text-gray-900" id="stat-lost">৳0</div>
+        </div>
+    </div>
+
+    <!-- Main Table -->
+    <div class="bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden">
+        
+        <!-- Toolbar -->
+        <div class="p-4 border-b border-gray-200 flex gap-4 bg-gray-50">
+            <input type="text" id="searchInput" placeholder="Search Customer..." class="px-3 py-2 text-sm border border-gray-300 rounded-md w-72 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400">
+            <select id="statusFilter" class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                <option value="All">All Statuses</option>
+                <option value="Active">Active</option>
+                <option value="Abandoned">Abandoned</option>
+            </select>
+        </div>
+
+        <!-- Table Header -->
+        <div class="grid grid-cols-6 gap-4 p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 bg-gray-50">
+            <div class="col-span-2 pl-2">Customer</div>
+            <div>Items</div>
+            <div>Cart Value</div>
+            <div>Last Activity</div>
+            <div>Status</div>
+        </div>
+
+        <!-- Table Body -->
+        <div id="tableBody" class="divide-y divide-gray-100"></div>
+
+    </div>
+
+    <script>
+        // --- DATA STATE ---
+        let expandedRowId = null;
+        let searchQuery = "";
+        let statusQuery = "All";
+
+        let sessions = [
+            {
+                id: 'TRK-99214',
+                customer: 'Rahim Uddin',
+                phone: '01711223344',
+                address: 'House 12, Road 5, Block C, Banani, Dhaka',
+                products: 2,
+                value: 4500,
+                time: '1 hour ago',
+                status: 'Active',
+                stats: { visits: 4, ordered: 1, abandoned: 2, spent: 1200 },
+                history: [
+                    { 
+                        timeAgo: '1 hour ago', date: 'Today, 10:14 AM', status: 'Active', 
+                        items: [
+                            { name: 'Wireless Mouse', qty: 1, price: 1000 },
+                            { name: 'Mechanical Keyboard', qty: 1, price: 3500 }
+                        ], 
+                        total: 4500 
+                    },
+                    { 
+                        timeAgo: '4 days ago', date: 'Oct 20, 02:30 PM', status: 'Converted', 
+                        items: [
+                            { name: 'USB-C Hub', qty: 1, price: 1200 }
+                        ], 
+                        total: 1200 
+                    },
+                    { 
+                        timeAgo: '9 days ago', date: 'Oct 15, 09:15 AM', status: 'Abandoned', 
+                        items: [
+                            { name: 'Monitor Arm', qty: 1, price: 3500 }
+                        ], 
+                        total: 3500 
+                    }
+                ]
+            },
+            {
+                id: 'TRK-88100',
+                customer: 'Unknown Customer',
+                phone: null,
+                address: null,
+                products: 2,
+                value: 950,
+                time: '35 mins ago',
+                status: 'Abandoned',
+                stats: { visits: 1, ordered: 0, abandoned: 1, spent: 0 },
+                history: [
+                    { 
+                        timeAgo: '35 mins ago', date: 'Today, 09:30 AM', status: 'Abandoned', 
+                        items: [
+                            { name: 'Phone Case', qty: 1, price: 450 },
+                            { name: 'Screen Protector', qty: 1, price: 500 }
+                        ], 
+                        total: 950 
+                    }
+                ]
+            }
+        ];
+
+        // --- UTILS ---
+        const getStatusStyles = (status) => {
+            const map = {
+                'Active': 'bg-blue-50 text-blue-700 border-blue-200',
+                'Abandoned': 'bg-red-50 text-red-700 border-red-200',
+                'Converted': 'bg-green-50 text-green-700 border-green-200'
+            };
+            return `px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border rounded-md ${map[status] || map['Active']}`;
+        };
+        const formatCurrency = (amount) => `৳${amount.toLocaleString()}`;
+
+        // --- RENDER ---
+        function renderDashboard() {
+            let active = 0, abandoned = 0, converted = 0, lost = 0;
+            sessions.forEach(s => {
+                if(s.status === 'Active') active++;
+                if(s.status === 'Abandoned') { abandoned++; lost += s.value; }
+                if(s.status === 'Converted') converted++;
+            });
+            document.getElementById('stat-active').innerText = active;
+            document.getElementById('stat-abandoned').innerText = abandoned;
+            document.getElementById('stat-converted').innerText = converted;
+            document.getElementById('stat-lost').innerText = formatCurrency(lost);
+            document.getElementById('stat-rate').innerText = (abandoned+converted > 0) ? `${((converted/(abandoned+converted))*100).toFixed(1)}%` : '0%';
+            
+            renderTable();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            const filteredSessions = sessions.filter(s => {
+                const matchSearch = s.customer.toLowerCase().includes(searchQuery.toLowerCase()) || (s.phone && s.phone.includes(searchQuery));
+                const matchStatus = statusQuery === "All" || s.status === statusQuery;
+                return matchSearch && matchStatus;
+            });
+
+            filteredSessions.forEach(session => {
+                const isExpanded = expandedRowId === session.id;
+                const row = document.createElement('div');
+                
+                // MAIN ROW
+                let rowHtml = `
+                    <div class="grid grid-cols-6 gap-4 p-4 text-sm cursor-pointer items-center hover:bg-slate-50 transition-colors" onclick="toggleRow('${session.id}')">
+                        <div class="col-span-2 font-medium text-gray-900 pl-2">
+                            ${session.customer}
+                            <div class="text-xs text-gray-400 font-normal mt-0.5">${session.phone || 'No Contact Info'}</div>
+                        </div>
+                        <div class="text-gray-600">${session.products} Items</div>
+                        <div class="font-medium text-gray-900">${formatCurrency(session.value)}</div>
+                        <div class="text-gray-500 text-xs font-medium">${session.time}</div>
+                        <div class="flex justify-between items-center pr-2">
+                            <span class="${getStatusStyles(session.status)}">${session.status}</span>
+                            <div class="text-gray-400 font-bold text-lg leading-none">${isExpanded ? '-' : '+'}</div>
+                        </div>
+                    </div>
+                `;
+
+                // EXPANDED VIEW
+                if (isExpanded) {
+                    
+                    // Generate History Items
+                    let historyHtml = session.history.map(h => {
+                        let itemsListHtml = h.items.map(item => `
+                            <div class="grid grid-cols-[1fr_80px_100px] gap-4 py-1.5 text-sm border-b border-gray-100 last:border-0">
+                                <div class="text-gray-700">${item.name}</div>
+                                <div class="text-gray-500 text-center">Qty: ${item.qty}</div>
+                                <div class="text-gray-900 font-medium text-right">${formatCurrency(item.price)}</div>
+                            </div>
+                        `).join('');
+
+                        return `
+                        <div class="bg-white border border-gray-200 rounded-md p-4 mb-4 shadow-sm">
+                            <div class="flex justify-between items-center mb-3 pb-3 border-b border-gray-100">
+                                <div>
+                                    <span class="font-bold text-gray-900 text-sm">${h.timeAgo}</span>
+                                    <span class="text-xs text-gray-500 ml-2">(${h.date})</span>
+                                </div>
+                                <span class="${getStatusStyles(h.status)}">${h.status}</span>
+                            </div>
+                            <div class="mb-3 px-2 bg-gray-50 rounded-sm">
+                                ${itemsListHtml}
+                            </div>
+                            <div class="flex justify-end pt-2">
+                                <div class="text-sm">
+                                    <span class="text-gray-500 mr-2">Total:</span>
+                                    <span class="font-bold text-gray-900 text-base">${formatCurrency(h.total)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }).join('');
+
+                    rowHtml += `
+                        <div class="bg-[#F8FAFC] border-t border-b border-gray-200 p-8 shadow-inner cursor-default flex flex-col gap-8">
+                            
+                            <!-- LINE 1: CUSTOMER INFORMATION -->
+                            <div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Customer Information</h3>
+                                    
+                                    <!-- Action Buttons -->
+                                    ${session.phone ? `
+                                        <div class="flex gap-2">
+                                            <a href="tel:${session.phone}" class="px-3 py-1.5 bg-white border border-gray-300 text-gray-800 hover:bg-gray-50 text-xs font-bold rounded-md shadow-sm transition-colors flex items-center gap-1.5">
+                                                📞 Call
+                                            </a>
+                                            <a href="https://wa.me/${session.phone.replace(/[^0-9]/g, '')}" target="_blank" class="px-3 py-1.5 bg-[#25D366] text-white hover:bg-[#1DA851] text-xs font-bold rounded-md shadow-sm transition-colors flex items-center gap-1.5">
+                                                💬 WhatsApp
+                                            </a>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                
+                                <div class="grid grid-cols-3 gap-4">
+                                    <div class="bg-white border border-gray-200 rounded-md p-4">
+                                        <div class="text-[11px] text-gray-500 uppercase font-semibold mb-1">Name</div>
+                                        <div class="text-base font-bold text-gray-900 truncate" title="${session.customer}">${session.customer}</div>
+                                    </div>
+                                    <div class="bg-white border border-gray-200 rounded-md p-4">
+                                        <div class="text-[11px] text-gray-500 uppercase font-semibold mb-1">Phone Number</div>
+                                        <div class="text-base font-bold text-gray-900 truncate">
+                                            ${session.phone || '<span class="text-gray-400 italic font-normal text-sm">No information</span>'}
+                                        </div>
+                                    </div>
+                                    <div class="bg-white border border-gray-200 rounded-md p-4">
+                                        <div class="text-[11px] text-gray-500 uppercase font-semibold mb-1">Address</div>
+                                        <div class="text-sm font-bold text-gray-900 break-words leading-tight">
+                                            ${session.address || '<span class="text-gray-400 italic font-normal text-sm">No information</span>'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- LINE 2: STATISTICS -->
+                            <div>
+                                <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Lifetime Statistics</h3>
+                                <div class="grid grid-cols-4 gap-4">
+                                    <div class="bg-white border border-gray-200 rounded-md p-4">
+                                        <div class="text-[11px] text-gray-500 uppercase font-semibold mb-1">Total Visits</div>
+                                        <div class="text-lg font-bold text-gray-900">${session.stats.visits}</div>
+                                    </div>
+                                    <div class="bg-white border border-gray-200 rounded-md p-4">
+                                        <div class="text-[11px] text-gray-500 uppercase font-semibold mb-1">Times Ordered</div>
+                                        <div class="text-lg font-bold text-green-600">${session.stats.ordered}</div>
+                                    </div>
+                                    <div class="bg-white border border-gray-200 rounded-md p-4">
+                                        <div class="text-[11px] text-gray-500 uppercase font-semibold mb-1">Abandoned</div>
+                                        <div class="text-lg font-bold text-red-600">${session.stats.abandoned}</div>
+                                    </div>
+                                    <div class="bg-white border border-gray-200 rounded-md p-4">
+                                        <div class="text-[11px] text-gray-500 uppercase font-semibold mb-1">Total Spent</div>
+                                        <div class="text-lg font-bold text-gray-900">${formatCurrency(session.stats.spent)}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- LINE 3: CHECKOUT HISTORY -->
+                            <div>
+                                <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Checkout History & Cart Details</h3>
+                                <div>
+                                    ${historyHtml}
+                                </div>
+                            </div>
+
+                        </div>
+                    `;
+                }
+
+                row.innerHTML = rowHtml;
+                tbody.appendChild(row);
+            });
+        }
+
+        // --- ACTIONS ---
+        function toggleRow(id) { expandedRowId = expandedRowId === id ? null : id; renderTable(); }
+
+        document.getElementById('searchInput').addEventListener('input', (e) => { searchQuery = e.target.value; renderTable(); });
+        document.getElementById('statusFilter').addEventListener('change', (e) => { statusQuery = e.target.value; renderTable(); });
+
+        renderDashboard();
+    </script>
+</body>
+</html>
