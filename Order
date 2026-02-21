@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Order Management System</title>
+
+<!-- Remix Icons & Font -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+
+<style>
+:root {
+    --text-main: #1e293b; 
+    --border: #f1f5f9;
+    --success: #10b981; 
+    --danger: #ef4444;  
+    --warning: #f59e0b; 
+    --bg-light: #f9fbfe;
+}
+
+/* UNIVERSAL TYPOGRAPHY - NO DISCRIMINATION */
+* {
+    margin: 0; padding: 0; box-sizing: border-box;
+    font-size: 15px !important;
+    font-weight: 400 !important;
+    color: var(--text-main);
+    font-family: 'IBM Plex Sans', sans-serif;
+    text-decoration: none !important;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body { background: #f4f7fa; padding: 40px; }
+.container { max-width: 1250px; margin: 0 auto; }
+
+/* Main Table List */
+.order-card {
+    background: white; border: 1px solid var(--border);
+    border-radius: 12px; margin-bottom: 25px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+.order-grid-row {
+    display: grid;
+    grid-template-columns: 140px 160px 1fr 1fr 1fr 80px;
+    padding: 22px 30px;
+    align-items: center;
+}
+.table-header { background: white; border-bottom: 1px solid var(--border); }
+
+/* Status Color Logic */
+.status-bracket.pending { color: var(--warning) !important; }
+.status-bracket.confirmed { color: var(--success) !important; }
+.status-bracket.cancelled { color: var(--danger) !important; }
+.status-bracket.review { color: var(--warning) !important; }
+.status-bracket.delivered { color: var(--success) !important; }
+.status-bracket.discount { color: var(--danger) !important; }
+
+.view-btn { cursor: pointer; text-align: left; white-space: nowrap; }
+
+/* DETAILS PANEL */
+.details-panel {
+    display: none; padding: 40px 60px;
+    border-top: 1px solid var(--border);
+    animation: fadeIn 0.3s ease;
+}
+
+/* EXACT MIDDLE ALIGNMENT FOR INFO BOX */
+.info-split-container {
+    display: flex; justify-content: center; align-items: center;
+    background: var(--bg-light); border: 1px solid #f1f5f9;
+    border-radius: 8px; margin-bottom: 35px; padding: 35px 0;
+}
+.info-content-wrapper {
+    display: grid; grid-template-columns: auto 1px auto;
+    gap: 80px; align-items: center;
+}
+.vertical-divider { background-color: #e2e8f0; height: 100px; width: 1px; }
+.info-column { display: flex; flex-direction: column; gap: 12px; }
+.info-line { display: flex; align-items: center; gap: 10px; }
+.info-line i { color: #94a3b8; font-size: 16px; }
+
+/* Admin Action Row */
+.action-row-inline { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.btn-icon {
+    width: 24px; height: 24px; border: 1px solid #cbd5e1;
+    background: white; cursor: pointer; display: inline-flex;
+    align-items: center; justify-content: center;
+}
+
+/* PRODUCT LIST WITH VERTICAL DIVIDERS */
+.product-list { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+.product-list td { 
+    padding: 20px 25px; 
+    border-bottom: 1px solid #f8fafc; 
+    border-right: 1px solid #f1f5f9; /* Vertical Divider */
+    vertical-align: middle; /* টেক্সট যাতে দাগের সাপেক্ষে মাঝখানে থাকে */
+    text-align: center;
+}
+.product-list td:first-child { padding-left: 0; text-align: left; width: 40%; }
+.product-list td:last-child { border-right: none; text-align: right; padding-right: 0; }
+
+.strike-price { text-decoration: line-through !important; margin-right: 15px; opacity: 0.5; }
+.current-price { margin-right: 12px; }
+
+/* CALCULATION SECTION (MATCHES YOUR IMAGE) */
+.billing-conclusion-horizontal {
+    display: flex;
+    justify-content: flex-end;
+    gap: 120px;
+    margin-top: 30px;
+    padding-top: 25px;
+    border-top: 1px solid var(--border);
+}
+.bill-col { text-align: right; }
+.bill-label { display: block; margin-bottom: 10px; opacity: 0.6; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div style="margin-bottom: 30px;">Order Management System</div>
+
+    <div class="order-card table-header">
+        <div class="order-grid-row">
+            <div>Order ID</div>
+            <div>Timestamp</div>
+            <div>Quantity</div>
+            <div>Amount</div>
+            <div>Status</div>
+            <div>Details</div>
+        </div>
+    </div>
+
+    <!-- Order Card 1: 3 Items -->
+    <div class="order-card">
+        <div class="order-row">
+            <div class="order-grid-row">
+                <div>ORD-1025</div>
+                <div>2 hours ago</div>
+                <div>3 Items</div>
+                <div>TK 450</div>
+                <div><span class="status-bracket pending" id="stat-1">[Pending]</span></div>
+                <div class="view-btn" onclick="toggleDetails('1')">View Details</div>
+            </div>
+        </div>
+
+        <div class="details-panel" id="panel-1">
+            <div class="info-split-container">
+                <div class="info-content-wrapper">
+                    <div class="info-column">
+                        <div style="opacity: 0.7; margin-bottom: 5px;">Customer Information</div>
+                        <div class="info-line"><i class="ri-user-line"></i> <span>Name: Raihan Ahmed</span></div>
+                        <div class="info-line"><i class="ri-phone-line"></i> <span>Phone: 01877665544</span></div>
+                        <div class="info-line"><i class="ri-map-pin-line"></i> <span>Address: Dhaka, Bangladesh</span></div>
+                    </div>
+                    <div class="vertical-divider"></div>
+                    <div class="info-column">
+                        <div style="opacity: 0.7; margin-bottom: 5px;">Order Details</div>
+                        <div class="info-line"><i class="ri-calendar-line"></i> <span>Date: 5-25-2026</span></div>
+                        <div class="info-line"><i class="ri-coupon-line"></i> <span>Coupons: SAVE20, WELCOME50</span></div>
+                        <div class="info-line action-row-inline">
+                            <i class="ri-shield-user-line"></i>
+                            <span id="action-area-1" class="action-row-inline">
+                                <span>Admin Action:</span>
+                                <button class="btn-icon" onclick="processAction('1', 'confirm')" style="color:var(--success) !important;">✓</button>
+                                <button class="btn-icon" onclick="processAction('1', 'cancel')" style="color:var(--danger) !important;">✕</button>
+                            </span>
+                            <span id="result-1" style="display:none" class="action-row-inline"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="opacity: 0.7; margin-bottom: 15px;">Items Summary</div>
+            <table class="product-list">
+                <tbody>
+                    <tr>
+                        <td>Premium Basmati Rice (5kg) <span class="status-bracket discount">[10% Off]</span></td>
+                        <td><span class="strike-price">TK 120</span><span class="current-price">TK 100</span></td>
+                        <td>2 Items</td>
+                        <td>TK 200</td>
+                    </tr>
+                    <tr>
+                        <td>Soyabean Oil (1L)</td>
+                        <td>TK 150</td>
+                        <td>1 Items</td>
+                        <td>TK 150</td>
+                    </tr>
+                    <tr>
+                        <td>Fresh Sugar (1kg)</td>
+                        <td>TK 100</td>
+                        <td>1 Items</td>
+                        <td>TK 100</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="billing-conclusion-horizontal">
+                <div class="bill-col">
+                    <span class="bill-label">Items Subtotal</span>
+                    <span>TK 500</span>
+                </div>
+                <div class="bill-col">
+                    <span class="bill-label">Coupon Discount</span>
+                    <span class="status-bracket discount">[- TK 50]</span>
+                </div>
+                <div class="bill-col">
+                    <span class="bill-label">Total Payable</span>
+                    <span class="status-bracket confirmed">TK 450</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Card 2: 1 Item -->
+    <div class="order-card">
+        <div class="order-row">
+            <div class="order-grid-row">
+                <div>ORD-1026</div>
+                <div>45 mins ago</div>
+                <div>1 Item</div>
+                <div>TK 1200</div>
+                <div><span class="status-bracket pending" id="stat-2">[Pending]</span></div>
+                <div class="view-btn" onclick="toggleDetails('2')">View Details</div>
+            </div>
+        </div>
+        <div class="details-panel" id="panel-2">
+            <div class="info-split-container">
+                <div class="info-content-wrapper">
+                    <div class="info-column">
+                        <div style="opacity: 0.7; margin-bottom: 5px;">Customer Information</div>
+                        <div class="info-line"><i class="ri-user-line"></i> <span>Name: Karim Ahmed</span></div>
+                        <div class="info-line"><i class="ri-phone-line"></i> <span>Phone: 01700998877</span></div>
+                        <div class="info-line"><i class="ri-map-pin-line"></i> <span>Address: Chittagong, Bangladesh</span></div>
+                    </div>
+                    <div class="vertical-divider"></div>
+                    <div class="info-column">
+                        <div style="opacity: 0.7; margin-bottom: 5px;">Order Details</div>
+                        <div class="info-line"><i class="ri-calendar-line"></i> <span>Date: 5-26-2026</span></div>
+                        <div class="info-line"><i class="ri-coupon-line"></i> <span>Coupons: [Not Applied]</span></div>
+                        <div class="info-line action-row-inline">
+                            <i class="ri-shield-user-line"></i>
+                            <span id="action-area-2" class="action-row-inline">
+                                <span>Admin Action:</span>
+                                <button class="btn-icon" onclick="processAction('2', 'confirm')" style="color:var(--success) !important;">✓</button>
+                                <button class="btn-icon" onclick="processAction('2', 'cancel')" style="color:var(--danger) !important;">✕</button>
+                            </span>
+                            <span id="result-2" style="display:none" class="action-row-inline"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="opacity: 0.7; margin-bottom: 15px;">Items Summary</div>
+            <table class="product-list">
+                <tbody>
+                    <tr>
+                        <td>Organic Ghee (1kg)</td>
+                        <td>TK 1200</td>
+                        <td>1 Item</td>
+                        <td>TK 1200</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="billing-conclusion-horizontal">
+                <div class="bill-col">
+                    <span class="bill-label">Items Subtotal</span>
+                    <span>TK 1200</span>
+                </div>
+                <div class="bill-col">
+                    <span class="bill-label">Total Payable</span>
+                    <span class="status-bracket confirmed">TK 1200</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleDetails(id) {
+    const target = document.getElementById('panel-' + id);
+    const allPanels = document.querySelectorAll('.details-panel');
+    const allBtns = document.querySelectorAll('.view-btn');
+
+    const isVisible = target.style.display === 'block';
+    allPanels.forEach(p => p.style.display = 'none');
+    allBtns.forEach(b => b.textContent = 'View Details');
+
+    if (!isVisible) {
+        target.style.display = 'block';
+        event.currentTarget.textContent = 'Hide Details';
+    }
+}
+
+function processAction(id, type) {
+    const area = document.getElementById('action-area-' + id);
+    const result = document.getElementById('result-' + id);
+    const badge = document.getElementById('stat-' + id);
+
+    area.style.display = 'none';
+    result.style.display = 'inline-flex';
+    result.style.alignItems = 'center';
+
+    if (type === 'confirm') {
+        badge.textContent = '[Confirmed]';
+        badge.className = 'status-bracket confirmed';
+        result.innerHTML = `
+            <span>Admin Action: <span class="status-bracket confirmed">[Confirmed]</span></span> 
+            <span style="margin: 0 10px; opacity: 0.2;">|</span> 
+            <i class="ri-truck-line" style="margin-right:4px;"></i> 
+            <span>Courier: <span class="status-bracket review">[In Review]</span></span>
+        `;
+    } else {
+        badge.textContent = '[Cancelled]';
+        badge.className = 'status-bracket cancelled';
+        result.innerHTML = `<span>Admin Action: <span class="status-bracket cancelled">[Cancelled]</span></span>`;
+    }
+}
+</script>
+
+</body>
+</html>
