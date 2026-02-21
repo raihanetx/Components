@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Category Management</title>
+
+<link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+/* ===== OVERVIEW STYLES (from new design) ===== */
+:root {
+    --text-main: #1e293b;
+    --border: #f1f5f9;
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --bg-light: #f9fbfe;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-size: 15px !important;
+    font-weight: 400 !important;
+    color: var(--text-main);
+    font-family: 'IBM Plex Sans', sans-serif;
+}
+
+body {
+    background: #f4f7fa;
+    padding: 40px;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.order-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+/* 6 columns: Category | Source | Products | Created | Status | Manage */
+.order-grid-row {
+    display: grid;
+    grid-template-columns: 1fr 150px 130px 150px 120px auto;
+    padding: 20px 30px;
+    align-items: center;
+    gap: 0;
+}
+
+.table-header {
+    border-bottom: 1px solid var(--border);
+    background: white;
+}
+
+.status-bracket.active { color: var(--success) !important; }
+.status-bracket.hidden-status { color: var(--warning) !important; }
+
+.category-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Square image — perfect square, slightly rounded corners */
+.cat-image {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 6px;
+    flex-shrink: 0;
+    display: block;
+}
+
+.manage-col {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.manage-col i {
+    cursor: pointer;
+    font-size: 17px !important;
+}
+
+.manage-col .ri-pencil-line { color: #64748b; }
+.manage-col .ri-pencil-line:hover { color: #1e293b; }
+.manage-col .ri-delete-bin-line { color: #ef4444; }
+.manage-col .ri-delete-bin-line:hover { color: #b91c1c; }
+
+/* ===== EDIT PAGE STYLES ===== */
+#editPage {
+    display: none;
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+#editPage.show { display: flex; }
+
+.card {
+    background: white;
+    border: 1px solid rgba(0,0,0,0.03);
+    border-radius: 24px;
+    padding: 40px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+    width: 100%;
+    max-width: 420px;
+}
+
+.btn-primary {
+    background: #16a34a; color: white; height: 50px; border-radius: 12px;
+    font-weight: 600 !important; transition: all 0.2s; display: flex; align-items: center;
+    justify-content: center; box-shadow: 0 4px 12px rgba(22,163,74,0.2);
+    border: none; cursor: pointer; width: 100%;
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(22,163,74,0.25); }
+
+.btn-cancel {
+    background: #f1f5f1; color: #64748b; height: 50px; border-radius: 12px;
+    font-weight: 600 !important; transition: all 0.2s; display: flex; align-items: center;
+    justify-content: center; border: none; cursor: pointer; width: 100%;
+}
+.btn-cancel:hover { background: #e2e8e0; }
+
+.toggle-container {
+    position: relative; display: flex; background: #f1f5f1;
+    border-radius: 999px; padding: 4px; margin-bottom: 32px;
+}
+.toggle-btn-switch {
+    position: relative; z-index: 2; flex: 1; text-align: center;
+    padding: 10px 16px; font-size: 14px !important; font-weight: 600 !important; color: #94a3b8;
+    cursor: pointer; transition: color 0.3s ease; border-radius: 999px;
+}
+.toggle-btn-switch.active { color: #1e293b; }
+.toggle-slider {
+    position: absolute; top: 4px; left: 4px;
+    width: calc(50% - 4px); height: calc(100% - 8px);
+    background: white; border-radius: 999px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: transform 0.3s cubic-bezier(0.68,-0.55,0.27,1.55);
+}
+.toggle-slider.right { transform: translateX(100%); }
+
+.input-group { margin-bottom: 24px; }
+.input-label { display: block; font-size: 14px !important; font-weight: 600 !important; color: #1e293b; margin-bottom: 4px; }
+.input-subtext { font-size: 12px !important; color: #94a3b8; margin-bottom: 10px; display: block; }
+
+.form-input-box {
+    width: 100%; height: 50px; padding: 0 16px; font-size: 15px !important; font-weight: 500 !important;
+    color: #1e293b; background: #ffffff; border: 1.5px solid #f1f5f1;
+    border-radius: 12px; outline: none; transition: border-color 0.2s ease;
+}
+.form-input-box:focus { border-color: #D4AF37; }
+
+.icon-input-row { display: flex; gap: 12px; width: 100%; }
+.icon-input-row .form-input-box { flex: 1; }
+
+.preview-box {
+    width: 50px; height: 50px; flex-shrink: 0; display: flex; align-items: center;
+    justify-content: center; background: #ffffff; border: 1.5px solid #f1f5f1;
+    border-radius: 12px; transition: all 0.2s ease; font-size: 24px !important; color: #cbd5e1;
+}
+.preview-box.valid { background: #FFFDF5; border-color: #D4AF37; color: #D4AF37; }
+.preview-box.error { color: #ef4444; border-color: #fecaca; background: #fff5f5; }
+
+.upload-zone {
+    border: 2px dashed #e2e8e0; border-radius: 12px; padding: 24px;
+    text-align: center; cursor: pointer; transition: all 0.3s; background: #ffffff;
+}
+.upload-zone:hover { border-color: #16a34a; background: #fafffa; }
+
+.hidden { display: none !important; }
+
+/* Toast */
+#toast {
+    position: fixed; bottom: 32px;
+    left: 50%; transform: translateX(-50%) translateY(16px);
+    background: #1e293b; color: white;
+    padding: 12px 24px; border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    font-size: 14px !important;
+    display: flex; align-items: center; gap: 8px;
+    opacity: 0; pointer-events: none;
+    transition: all 0.3s;
+    z-index: 999;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- ================= OVERVIEW PAGE ================= -->
+<div id="overviewPage">
+<div class="container">
+
+    <div style="margin-bottom: 30px;">Category Management</div>
+
+    <!-- Header -->
+    <div class="order-card table-header">
+        <div class="order-grid-row">
+            <div>Category</div>
+            <div>Source</div>
+            <div>Products</div>
+            <div>Created</div>
+            <div>Status</div>
+            <div>Manage</div>
+        </div>
+    </div>
+
+    <!-- Row 1 — Icon type -->
+    <div class="order-card category-row"
+         data-name="Organic Fruits" data-type="icon" data-icon="ri-leaf-line" data-id="CAT-101">
+        <div class="order-grid-row">
+            <div class="category-name-cell">
+                <!-- icon-box: shown for icon type -->
+                <div class="icon-box" style="width:36px;height:36px;border:1px solid #e2e8f0;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px !important;flex-shrink:0;">
+                    <i class="ri-leaf-line" style="font-size:18px !important;"></i>
+                </div>
+                <span class="category-name">Organic Fruits</span>
+            </div>
+
+            <div>Icon Library</div>
+
+            <div>24 Items</div>
+            <div>2 days ago</div>
+
+            <div>
+                <span class="status-bracket active" id="status-1">[Active]</span>
+            </div>
+
+            <div class="manage-col">
+                <i class="ri-pencil-line" onclick="openEdit(this)"></i>
+                <i class="ri-delete-bin-line" onclick="deleteRow(this)"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 2 — Icon type -->
+    <div class="order-card category-row"
+         data-name="Daily Essentials" data-type="icon" data-icon="ri-basket-line" data-id="CAT-102">
+        <div class="order-grid-row">
+            <div class="category-name-cell">
+                <div class="icon-box" style="width:36px;height:36px;border:1px solid #e2e8f0;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px !important;flex-shrink:0;">
+                    <i class="ri-basket-line" style="font-size:18px !important;"></i>
+                </div>
+                <span class="category-name">Daily Essentials</span>
+            </div>
+
+            <div>Icon Library</div>
+
+            <div>12 Items</div>
+            <div>5 days ago</div>
+
+            <div>
+                <span class="status-bracket hidden-status" id="status-2">[Hidden]</span>
+            </div>
+
+            <div class="manage-col">
+                <i class="ri-pencil-line" onclick="openEdit(this)"></i>
+                <i class="ri-delete-bin-line" onclick="deleteRow(this)"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 3 — Image type (square, slightly rounded) -->
+    <div class="order-card category-row"
+         data-name="Fresh Vegetables" data-type="image"
+         data-image="https://images.unsplash.com/photo-1542838132-92c53300491e" data-id="CAT-103">
+        <div class="order-grid-row">
+            <div class="category-name-cell">
+                <div class="icon-box" style="width:36px;height:36px;border-radius:6px;overflow:hidden;flex-shrink:0;">
+                    <img src="https://images.unsplash.com/photo-1542838132-92c53300491e"
+                         class="cat-image" style="border-radius:6px;">
+                </div>
+                <span class="category-name">Fresh Vegetables</span>
+            </div>
+
+            <div>Image Upload</div>
+
+            <div>36 Items</div>
+            <div>1 week ago</div>
+
+            <div>
+                <span class="status-bracket active" id="status-3">[Active]</span>
+            </div>
+
+            <div class="manage-col">
+                <i class="ri-pencil-line" onclick="openEdit(this)"></i>
+                <i class="ri-delete-bin-line" onclick="deleteRow(this)"></i>
+            </div>
+        </div>
+    </div>
+
+</div>
+</div>
+
+
+<!-- ================= EDIT PAGE ================= -->
+<div id="editPage">
+    <div class="card">
+        <div style="text-align:center; margin-bottom:32px;">
+            <div style="font-size:22px !important; font-weight:700 !important; font-family:'Plus Jakarta Sans',sans-serif; color:#1e293b; margin-bottom:6px;">Add Category</div>
+            <div style="color:#64748b; font-size:14px !important;">Define a new category for your store</div>
+        </div>
+
+        <div class="toggle-container">
+            <div class="toggle-slider" id="toggleSlider"></div>
+            <div class="toggle-btn-switch active" id="btnIcon" onclick="setMode('icon')">Icon Library</div>
+            <div class="toggle-btn-switch" id="btnImage" onclick="setMode('image')">Upload Image</div>
+        </div>
+
+        <div class="input-group">
+            <label class="input-label">Category Name</label>
+            <span class="input-subtext">Enter the official name for this category</span>
+            <input type="text" id="categoryName" class="form-input-box" placeholder="e.g., Organic Fruits">
+        </div>
+
+        <div id="iconModeContent">
+            <div class="input-group">
+                <label class="input-label">Icon Code</label>
+                <span class="input-subtext">Enter a valid Remix Icon code</span>
+                <div class="icon-input-row">
+                    <input type="text" id="iconCode" class="form-input-box" placeholder="ri-home-line" oninput="validateAndPreview()" autocomplete="off">
+                    <div id="previewBox" class="preview-box">
+                        <i class="ri-cursor-line" style="opacity:0.5;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="imageModeContent" class="hidden">
+            <div class="input-group" style="margin-bottom:0;">
+                <label class="input-label">Category Image</label>
+                <span class="input-subtext">Upload a high-quality image file</span>
+                <div class="upload-zone" onclick="document.getElementById('catImageInput').click()">
+                    <input type="file" id="catImageInput" class="hidden" accept="image/*" onchange="handleImageUpload(this.files)">
+                    <div id="uploadPlaceholder">
+                        <svg style="width:32px;height:32px;display:block;margin:0 auto 8px;opacity:0.5;color:#64748b;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        <p style="font-size:14px !important; color:#64748b;">Click to upload</p>
+                    </div>
+                    <div id="imagePreviewArea" class="hidden" style="display:none;flex-direction:column;align-items:center;">
+                        <img id="imagePreviewSrc" src="" style="width:64px;height:64px;object-fit:cover;border-radius:8px;margin-bottom:8px;">
+                        <p style="font-size:14px !important; color:#16a34a;">Image Loaded</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex;gap:12px;margin-top:32px;">
+            <button type="button" class="btn-cancel" onclick="closeEdit()">Cancel</button>
+            <button type="button" class="btn-primary" onclick="saveChanges()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Toast -->
+<div id="toast">
+    <i class="ri-check-double-line" style="color:#16a34a; font-size:16px !important;"></i>
+    <span id="toastMsg">Saved!</span>
+</div>
+
+
+<script>
+let currentRow = null
+let currentMode = 'icon'
+
+function deleteRow(el) {
+    if (confirm("Delete this category?")) el.closest('.order-card').remove()
+}
+
+function openEdit(el) {
+    currentRow = el.closest('.category-row')
+
+    document.getElementById('categoryName').value = currentRow.dataset.name || ''
+    document.getElementById('iconCode').value = currentRow.dataset.icon || ''
+    document.getElementById('imagePreviewSrc').src = ''
+    document.getElementById('uploadPlaceholder').classList.remove('hidden')
+    document.getElementById('imagePreviewArea').style.display = 'none'
+
+    setMode(currentRow.dataset.type || 'icon')
+    validateAndPreview()
+
+    document.getElementById('overviewPage').style.display = 'none'
+    document.getElementById('editPage').classList.add('show')
+}
+
+function closeEdit() {
+    document.getElementById('editPage').classList.remove('show')
+    document.getElementById('overviewPage').style.display = 'block'
+    currentRow = null
+}
+
+function setMode(mode) {
+    currentMode = mode
+    document.getElementById('btnIcon').classList.toggle('active', mode === 'icon')
+    document.getElementById('btnImage').classList.toggle('active', mode === 'image')
+    document.getElementById('toggleSlider').classList.toggle('right', mode === 'image')
+    document.getElementById('iconModeContent').classList.toggle('hidden', mode !== 'icon')
+    document.getElementById('imageModeContent').classList.toggle('hidden', mode !== 'image')
+}
+
+function validateAndPreview() {
+    const code = document.getElementById('iconCode').value.trim()
+    const box = document.getElementById('previewBox')
+    box.classList.remove('valid', 'error')
+    if (code.startsWith('ri-') && code.length > 3) {
+        box.innerHTML = `<i class="${code}" style="font-size:24px !important;"></i>`
+        box.classList.add('valid')
+    } else if (code.length > 0) {
+        box.innerHTML = `<i class="ri-close-circle-line" style="font-size:24px !important;"></i>`
+        box.classList.add('error')
+    } else {
+        box.innerHTML = `<i class="ri-cursor-line" style="opacity:0.5;font-size:24px !important;"></i>`
+    }
+}
+
+function handleImageUpload(files) {
+    if (files.length > 0) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+            document.getElementById('uploadPlaceholder').classList.add('hidden')
+            const area = document.getElementById('imagePreviewArea')
+            area.style.display = 'flex'
+            area.classList.remove('hidden')
+            document.getElementById('imagePreviewSrc').src = e.target.result
+        }
+        reader.readAsDataURL(files[0])
+    }
+}
+
+function saveChanges() {
+    const name = document.getElementById('categoryName').value.trim()
+    if (!name) { showToast('Please enter a category name'); return }
+    if (!currentRow) return
+
+    const icon = document.getElementById('iconCode').value.trim()
+    const image = document.getElementById('imagePreviewSrc').src
+
+    currentRow.dataset.name = name
+    currentRow.dataset.type = currentMode
+    currentRow.dataset.icon = icon
+    currentRow.dataset.image = image
+
+    currentRow.querySelector('.category-name').textContent = name
+
+    // Update source cell (2nd cell in the grid row)
+    const cells = currentRow.querySelector('.order-grid-row').children
+    cells[1].textContent = currentMode === 'icon' ? 'Icon Library' : 'Image Upload'
+
+    const iconBox = currentRow.querySelector('.icon-box')
+    if (currentMode === 'icon') {
+        iconBox.style.border = '1px solid #e2e8f0'
+        iconBox.style.overflow = ''
+        iconBox.innerHTML = `<i class="${icon}" style="font-size:18px !important;"></i>`
+    } else {
+        iconBox.style.border = 'none'
+        iconBox.style.overflow = 'hidden'
+        iconBox.innerHTML = `<img src="${image}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;display:block;">`
+    }
+
+    showToast('Category Updated Successfully!')
+    closeEdit()
+}
+
+function showToast(msg) {
+    const toast = document.getElementById('toast')
+    document.getElementById('toastMsg').textContent = msg
+    toast.classList.add('show')
+    setTimeout(() => toast.classList.remove('show'), 2200)
+}
+</script>
+
+</body>
+</html>
