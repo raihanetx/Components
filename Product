@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Management</title>
+
+<link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    display: ['Plus Jakarta Sans', 'sans-serif'],
+                    body: ['Inter', 'sans-serif'],
+                }
+            }
+        }
+    }
+</script>
+
+<style>
+/* ── GLOBAL ── */
+:root { --accent:#16a34a; --danger:#ef4444; --text-main:#1e293b; --text-muted:#64748b; --border:#f1f5f9; }
+* { margin:0; padding:0; box-sizing:border-box; font-size:14px!important; color:var(--text-main); font-family:'IBM Plex Sans',sans-serif; }
+body { background:#f4f7fa; padding:30px 0; }
+
+/* ── OVERVIEW ── */
+.container { max-width:100%; margin:0 auto; padding:0 30px; }
+.order-grid-row {
+    display:grid;
+    grid-template-columns: minmax(0,2.2fr) minmax(0,1fr) minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,0.5fr);
+    padding:16px 24px; align-items:center; gap:20px;
+}
+.order-card { background:white; border:1px solid var(--border); border-radius:12px; margin-bottom:8px; box-shadow:0 1px 2px rgba(0,0,0,.02); }
+.table-header { background:transparent; border:none; margin-bottom:10px; }
+.table-header div { color:var(--text-muted); font-weight:600!important; font-size:12px!important; text-transform:uppercase; }
+
+.product-cell { display:flex; align-items:center; gap:12px; min-width:0; }
+.product-cell img { width:42px; height:42px; object-fit:cover; border-radius:6px; flex-shrink:0; }
+.product-info { display:flex; flex-direction:column; line-height:1.2; min-width:0; }
+.product-name { font-weight:600!important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.product-cat  { color:var(--text-muted); font-size:12px!important; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+.bracket-text { font-weight:500!important; }
+.text-red { color:var(--danger)!important; }
+.text-blue { color:#3b82f6!important; }
+.text-muted-val { color:#94a3b8!important; }
+
+.switch-sm {
+    width:36px; height:18px; background:#cbd5e1; border-radius:20px;
+    position:relative; cursor:pointer; transition:.3s; display:inline-block; flex-shrink:0;
+}
+.switch-sm.active { background:var(--accent); }
+.switch-sm::after { content:''; position:absolute; width:14px; height:14px; background:white; border-radius:50%; top:2px; left:2px; transition:.3s; }
+.switch-sm.active::after { left:20px; }
+
+.manage-col { display:flex; gap:15px; justify-content:flex-end; }
+.manage-col i { cursor:pointer; font-size:18px!important; color:#94a3b8; }
+.manage-col i:hover { color:var(--text-main); }
+
+/* ── EDIT PAGE ── */
+#editPage { display:none; padding:30px 0; }
+#editPage.show { display:block; }
+
+.form-input {
+    background:white; border:1.5px solid #e2e8e0; border-radius:8px;
+    padding:10px 14px; width:100%; transition:border-color .2s; font-family:'Inter',sans-serif;
+}
+.form-input:focus { outline:none; border-color:#16a34a; }
+
+.ep-card { background:white; border:1px solid #e2e8e0; border-radius:12px; padding:24px; margin-bottom:24px; box-shadow:0 1px 2px rgba(0,0,0,.02); }
+
+.switch-lg {
+    position:relative; width:44px; height:24px; background:#e2e8e0;
+    border-radius:12px; cursor:pointer; transition:background .2s; flex-shrink:0;
+}
+.switch-lg.active { background:#16a34a; }
+.switch-lg::after { content:''; position:absolute; top:2px; left:2px; width:20px; height:20px; background:white; border-radius:50%; transition:transform .2s; box-shadow:0 1px 2px rgba(0,0,0,.1); }
+.switch-lg.active::after { transform:translateX(20px); }
+
+.btn-primary { background:#16a34a; color:white!important; padding:12px 24px; border-radius:8px; font-weight:600!important; transition:all .2s; border:none; cursor:pointer; }
+.btn-primary:hover { background:#15803d; }
+.btn-cancel { background:white; color:#64748b; border:1px solid #e2e8e0; padding:12px 24px; border-radius:8px; font-weight:500!important; transition:all .2s; cursor:pointer; }
+.btn-cancel:hover { background:#f8faf8; border-color:#d1d5db; }
+
+@keyframes fadeIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+.fade-in { animation:fadeIn .3s ease-out; }
+
+.upload-zone { border:2px dashed #e2e8e0; border-radius:8px; padding:24px; text-align:center; cursor:pointer; transition:all .2s; background:#fff; }
+.upload-zone:hover { border-color:#16a34a; }
+
+.related-product-card { display:flex; align-items:center; gap:10px; padding:8px; background:white; border:1.5px solid #e2e8e0; border-radius:8px; cursor:pointer; transition:border-color .2s; }
+.related-product-card:hover { border-color:#ccc; }
+.related-product-card.selected { border-color:#16a34a; }
+.related-product-card img { width:40px; height:40px; border-radius:6px; object-fit:cover; flex-shrink:0; }
+
+.tag-pill { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; background:#f0fdf4; border:1px solid #16a34a; color:#16a34a!important; border-radius:20px; font-size:12px!important; }
+
+/* ── TOAST ── */
+#toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#334155; color:white!important; padding:10px 20px; border-radius:8px; display:none; z-index:1000; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ OVERVIEW PAGE ══════════════ -->
+<div id="overviewPage">
+    <div class="container">
+        <div style="margin-bottom:20px;font-size:18px!important;font-weight:700!important;font-family:'Plus Jakarta Sans'">Product Management</div>
+
+        <div class="table-header">
+            <div class="order-grid-row">
+                <div>Product Details</div>
+                <div>Variants</div>
+                <div>Price Range</div>
+                <div>Discount</div>
+                <div>Offer</div>
+                <div>Status</div>
+                <div style="text-align:right">Action</div>
+            </div>
+        </div>
+
+        <!-- Row 1 -->
+        <div class="order-card product-row" data-name="Organic Red Apples" data-cat="fruits" data-shortdesc="Fresh and crispy organic red apples" data-longdesc="" data-offer="yes" data-status="active">
+            <div class="order-grid-row">
+                <div class="product-cell">
+                    <img src="https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?w=80">
+                    <div class="product-info">
+                        <span class="product-name">Organic Red Apples</span>
+                        <span class="product-cat">Fruits &amp; Vegetables</span>
+                    </div>
+                </div>
+                <div>3 variants</div>
+                <div>$2.50 – $6.00</div>
+                <div class="bracket-text text-red">[20%]</div>
+                <div class="bracket-text text-blue offer-val">[Yes]</div>
+                <div><div class="switch-sm active status-toggle" onclick="toggleStatus(this)"></div></div>
+                <div class="manage-col">
+                    <i class="ri-pencil-line" onclick="openEdit(this)"></i>
+                    <i class="ri-delete-bin-line" onclick="this.closest('.product-row').remove()"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="order-card product-row" data-name="Whole Milk 1L" data-cat="dairy" data-shortdesc="Fresh whole milk, 1 litre" data-longdesc="" data-offer="no" data-status="active">
+            <div class="order-grid-row">
+                <div class="product-cell">
+                    <img src="https://images.unsplash.com/photo-1550583724-b2692b85b150?w=80">
+                    <div class="product-info">
+                        <span class="product-name">Whole Milk 1L</span>
+                        <span class="product-cat">Dairy &amp; Eggs</span>
+                    </div>
+                </div>
+                <div>1 variant</div>
+                <div>$3.20</div>
+                <div class="bracket-text text-red">[0%]</div>
+                <div class="bracket-text text-muted-val offer-val">[No]</div>
+                <div><div class="switch-sm active status-toggle" onclick="toggleStatus(this)"></div></div>
+                <div class="manage-col">
+                    <i class="ri-pencil-line" onclick="openEdit(this)"></i>
+                    <i class="ri-delete-bin-line" onclick="this.closest('.product-row').remove()"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="order-card product-row" data-name="Sourdough Bread" data-cat="bakery" data-shortdesc="Artisan sourdough baked fresh daily" data-longdesc="" data-offer="yes" data-status="inactive">
+            <div class="order-grid-row">
+                <div class="product-cell">
+                    <img src="https://images.unsplash.com/photo-1509440159596-0249088772ff?w=80">
+                    <div class="product-info">
+                        <span class="product-name">Sourdough Bread</span>
+                        <span class="product-cat">Bakery</span>
+                    </div>
+                </div>
+                <div>2 variants</div>
+                <div>$4.00 – $7.50</div>
+                <div class="bracket-text text-red">[15%]</div>
+                <div class="bracket-text text-blue offer-val">[Yes]</div>
+                <div><div class="switch-sm status-toggle" onclick="toggleStatus(this)"></div></div>
+                <div class="manage-col">
+                    <i class="ri-pencil-line" onclick="openEdit(this)"></i>
+                    <i class="ri-delete-bin-line" onclick="this.closest('.product-row').remove()"></i>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ══════════════ EDIT PAGE ══════════════ -->
+<div id="editPage">
+    <div class="max-w-3xl mx-auto" style="padding:0 16px">
+
+        <!-- Back header -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px">
+            <button onclick="closeEdit()" style="background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center">
+                <i class="ri-arrow-left-line" style="font-size:20px!important;color:#64748b"></i>
+            </button>
+            <div>
+                <h1 style="font-size:22px!important;font-weight:700!important;font-family:'Plus Jakarta Sans'">Edit Product</h1>
+                <p style="font-size:13px!important;color:#64748b;margin-top:2px">Update the details below and save</p>
+            </div>
+        </div>
+
+        <form id="editProductForm">
+
+            <!-- 1. Basic Info -->
+            <div class="ep-card">
+                <h2 style="font-size:16px!important;font-weight:600!important;font-family:'Plus Jakarta Sans';margin-bottom:20px">Basic Information</h2>
+
+                <div style="margin-bottom:18px">
+                    <label style="display:block;font-size:13px!important;font-weight:500!important;margin-bottom:4px">Product Name</label>
+                    <p style="font-size:12px!important;color:#64748b;margin-bottom:6px">Enter the official name of the product</p>
+                    <input type="text" id="epName" class="form-input" placeholder="e.g., Organic Red Apples">
+                </div>
+
+                <div style="margin-bottom:18px">
+                    <label style="display:block;font-size:13px!important;font-weight:500!important;margin-bottom:4px">Category</label>
+                    <p style="font-size:12px!important;color:#64748b;margin-bottom:6px">Select the most relevant category</p>
+                    <select id="epCategory" class="form-input">
+                        <option value="">Select Category</option>
+                        <option value="fruits">Fruits &amp; Vegetables</option>
+                        <option value="dairy">Dairy &amp; Eggs</option>
+                        <option value="meat">Meat &amp; Seafood</option>
+                        <option value="bakery">Bakery</option>
+                        <option value="snacks">Snacks</option>
+                        <option value="beverages">Beverages</option>
+                    </select>
+                </div>
+
+                <div style="background:#f9fafb;border-radius:8px;padding:14px;display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                        <label style="font-size:13px!important;font-weight:500!important;display:block">Offer Product</label>
+                        <p style="font-size:12px!important;color:#64748b;margin-top:2px">Toggle if this product is currently on sale</p>
+                    </div>
+                    <div class="switch-lg" id="epOfferSwitch" onclick="this.classList.toggle('active')"></div>
+                </div>
+            </div>
+
+            <!-- 2. Descriptions -->
+            <div class="ep-card">
+                <h2 style="font-size:16px!important;font-weight:600!important;font-family:'Plus Jakarta Sans';margin-bottom:20px">Descriptions</h2>
+
+                <div style="margin-bottom:18px">
+                    <label style="display:block;font-size:13px!important;font-weight:500!important;margin-bottom:4px">Short Description</label>
+                    <p style="font-size:12px!important;color:#64748b;margin-bottom:6px">A brief summary shown on product cards</p>
+                    <input type="text" id="epShortDesc" class="form-input" placeholder="Fresh and organic" maxlength="80"
+                        oninput="document.getElementById('epCharCount').textContent=this.value.length">
+                    <p style="font-size:12px!important;color:#64748b;text-align:right;margin-top:4px"><span id="epCharCount">0</span>/80</p>
+                </div>
+
+                <div>
+                    <label style="display:block;font-size:13px!important;font-weight:500!important;margin-bottom:4px">Long Description</label>
+                    <p style="font-size:12px!important;color:#64748b;margin-bottom:6px">Detailed information about the product</p>
+                    <textarea id="epLongDesc" class="form-input" rows="4" placeholder="Describe the product features, origin, benefits..."></textarea>
+                </div>
+            </div>
+
+            <!-- 3. Images -->
+            <div class="ep-card">
+                <h2 style="font-size:16px!important;font-weight:600!important;font-family:'Plus Jakarta Sans';margin-bottom:20px">Product Images</h2>
+
+                <div class="upload-zone" onclick="document.getElementById('epImageInput').click()">
+                    <input type="file" id="epImageInput" class="hidden" accept="image/*" multiple onchange="handleEpFiles(this.files)">
+                    <div id="epUploadPlaceholder">
+                        <svg class="w-8 h-8 mx-auto mb-2" style="color:#94a3b8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        <p style="font-size:13px!important;color:#64748b">Click to upload images</p>
+                        <p style="font-size:12px!important;color:#94a3b8;margin-top:4px">PNG, JPG up to 5MB</p>
+                    </div>
+                    <div id="epPreviewArea" class="hidden grid grid-cols-3 gap-3"></div>
+                </div>
+            </div>
+
+            <!-- 4. Varieties -->
+            <div class="ep-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+                    <div>
+                        <h2 style="font-size:16px!important;font-weight:600!important;font-family:'Plus Jakarta Sans'">Varieties &amp; Pricing</h2>
+                        <p style="font-size:12px!important;color:#64748b;margin-top:2px">Add different sizes or options</p>
+                    </div>
+                    <button type="button" onclick="addEpVariety()" style="font-size:13px!important;color:#16a34a;font-weight:500!important;background:none;border:none;cursor:pointer">+ Add Variety</button>
+                </div>
+                <div id="epVarietyContainer"></div>
+                <div id="epNoVariety" style="text-align:center;padding:24px;color:#64748b;border:1px dashed #e2e8e0;border-radius:8px;font-size:13px!important">
+                    No varieties added. Click "+ Add Variety" to start.
+                </div>
+            </div>
+
+            <!-- 5. FAQs -->
+            <div class="ep-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+                    <div>
+                        <h2 style="font-size:16px!important;font-weight:600!important;font-family:'Plus Jakarta Sans'">Frequently Asked Questions</h2>
+                        <p style="font-size:12px!important;color:#64748b;margin-top:2px">Common questions customers might have</p>
+                    </div>
+                    <button type="button" onclick="addEpFAQ()" style="font-size:13px!important;color:#16a34a;font-weight:500!important;background:none;border:none;cursor:pointer">+ Add FAQ</button>
+                </div>
+                <div id="epFaqContainer"></div>
+                <div id="epNoFAQ" style="text-align:center;padding:24px;color:#64748b;border:1px dashed #e2e8e0;border-radius:8px;font-size:13px!important">
+                    No FAQs added.
+                </div>
+            </div>
+
+            <!-- 6. Related Products -->
+            <div class="ep-card">
+                <label style="display:block;font-size:13px!important;font-weight:500!important;margin-bottom:4px">Related Products</label>
+                <p style="font-size:12px!important;color:#64748b;margin-bottom:8px">Select up to 4 related products</p>
+                <input type="text" id="epSearchRelated" class="form-input" style="font-size:13px!important" placeholder="Search products by name..." oninput="filterEpRelated()">
+                <div id="epSelectedTags" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;min-height:20px"></div>
+                <div id="epRelatedList" class="grid grid-cols-2 md:grid-cols-4 gap-3" style="margin-top:12px"></div>
+            </div>
+
+            <!-- Actions -->
+            <div style="display:flex;gap:12px;margin-top:8px;margin-bottom:40px">
+                <button type="button" class="btn-cancel" style="flex:1" onclick="closeEdit()">Cancel</button>
+                <button type="submit" class="btn-primary" style="flex:1">Save Changes</button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<div id="toast">Action Successful</div>
+
+<script>
+/* ── Overview ── */
+let currentRow = null;
+
+function toggleStatus(el) {
+    el.classList.toggle('active');
+    el.closest('.product-row').dataset.status = el.classList.contains('active') ? 'active' : 'inactive';
+}
+
+function openEdit(el) {
+    currentRow = el.closest('.product-row');
+    const d = currentRow.dataset;
+
+    document.getElementById('epName').value      = d.name || '';
+    document.getElementById('epShortDesc').value = d.shortdesc || '';
+    document.getElementById('epCharCount').textContent = (d.shortdesc || '').length;
+    document.getElementById('epLongDesc').value  = d.longdesc || '';
+    document.getElementById('epCategory').value  = d.cat || '';
+
+    const sw = document.getElementById('epOfferSwitch');
+    d.offer === 'yes' ? sw.classList.add('active') : sw.classList.remove('active');
+
+    resetEpDynamic();
+    epSelectedRelated = [];
+    renderEpRelated(epAllProducts);
+    renderEpTags();
+
+    document.getElementById('overviewPage').style.display = 'none';
+    document.getElementById('editPage').classList.add('show');
+    window.scrollTo(0, 0);
+}
+
+function closeEdit() {
+    document.getElementById('editPage').classList.remove('show');
+    document.getElementById('overviewPage').style.display = 'block';
+    window.scrollTo(0, 0);
+}
+
+/* ── Edit form save ── */
+document.getElementById('editProductForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const newName  = document.getElementById('epName').value.trim();
+    const newCat   = document.getElementById('epCategory').value;
+    const newShort = document.getElementById('epShortDesc').value.trim();
+    const newLong  = document.getElementById('epLongDesc').value.trim();
+    const isOffer  = document.getElementById('epOfferSwitch').classList.contains('active');
+
+    const catLabels = {
+        fruits:'Fruits & Vegetables', dairy:'Dairy & Eggs', meat:'Meat & Seafood',
+        bakery:'Bakery', snacks:'Snacks', beverages:'Beverages'
+    };
+
+    if (currentRow) {
+        currentRow.querySelector('.product-name').textContent = newName || '—';
+        currentRow.querySelector('.product-cat').textContent  = catLabels[newCat] || newCat || '—';
+
+        const offerEl = currentRow.querySelector('.offer-val');
+        offerEl.textContent = isOffer ? '[Yes]' : '[No]';
+        offerEl.className   = `bracket-text offer-val ${isOffer ? 'text-blue' : 'text-muted-val'}`;
+
+        currentRow.dataset.name      = newName;
+        currentRow.dataset.cat       = newCat;
+        currentRow.dataset.shortdesc = newShort;
+        currentRow.dataset.longdesc  = newLong;
+        currentRow.dataset.offer     = isOffer ? 'yes' : 'no';
+    }
+
+    closeEdit();
+    showToast('Product updated successfully!');
+});
+
+/* ── Image upload ── */
+function handleEpFiles(files) {
+    const preview = document.getElementById('epPreviewArea');
+    document.getElementById('epUploadPlaceholder').classList.add('hidden');
+    preview.classList.remove('hidden');
+
+    Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const div = document.createElement('div');
+            div.className = 'relative group fade-in';
+            div.innerHTML = `
+                <img src="${e.target.result}" class="w-full object-cover rounded-lg border" style="height:80px">
+                <button type="button" onclick="removeEpImg(this)"
+                    class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                    style="color:white!important;border:none;cursor:pointer">×</button>
+            `;
+            preview.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function removeEpImg(btn) {
+    btn.parentElement.remove();
+    const preview = document.getElementById('epPreviewArea');
+    if (!preview.children.length) {
+        document.getElementById('epUploadPlaceholder').classList.remove('hidden');
+        preview.classList.add('hidden');
+    }
+}
+
+/* ── Varieties ── */
+let epVarietyCount = 0;
+
+function addEpVariety() {
+    epVarietyCount++;
+    document.getElementById('epNoVariety').classList.add('hidden');
+    const c = document.getElementById('epVarietyContainer');
+    const div = document.createElement('div');
+    div.className = 'ep-variety-item fade-in';
+    div.style.cssText = 'background:#f9fafb;border-radius:8px;padding:16px;margin-bottom:12px';
+    div.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <span style="font-weight:500!important;font-size:13px!important">Variety #${epVarietyCount}</span>
+            <button type="button" onclick="removeEpVariety(this)"
+                style="color:#ef4444;font-size:12px!important;font-weight:500!important;background:none;border:none;cursor:pointer">Remove</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+            <div>
+                <label style="font-size:12px!important;font-weight:500!important;color:#64748b;display:block;margin-bottom:4px">Stock</label>
+                <p style="font-size:11px!important;color:#94a3b8;margin-bottom:4px">Units available</p>
+                <input type="number" class="form-input" style="font-size:13px!important" placeholder="0">
+            </div>
+            <div>
+                <label style="font-size:12px!important;font-weight:500!important;color:#64748b;display:block;margin-bottom:4px">Price</label>
+                <p style="font-size:11px!important;color:#94a3b8;margin-bottom:4px">In USD</p>
+                <input type="number" class="form-input" style="font-size:13px!important" placeholder="0.00">
+            </div>
+            <div>
+                <label style="font-size:12px!important;font-weight:500!important;color:#64748b;display:block;margin-bottom:4px">Discount</label>
+                <p style="font-size:11px!important;color:#94a3b8;margin-bottom:4px">Percentage off</p>
+                <input type="number" class="form-input" style="font-size:13px!important" placeholder="0%">
+            </div>
+        </div>
+    `;
+    c.appendChild(div);
+}
+
+function removeEpVariety(btn) {
+    btn.closest('.ep-variety-item').remove();
+    if (!document.getElementById('epVarietyContainer').children.length)
+        document.getElementById('epNoVariety').classList.remove('hidden');
+}
+
+/* ── FAQs ── */
+let epFaqCount = 0;
+
+function addEpFAQ() {
+    epFaqCount++;
+    document.getElementById('epNoFAQ').classList.add('hidden');
+    const c = document.getElementById('epFaqContainer');
+    const div = document.createElement('div');
+    div.className = 'ep-faq-item fade-in';
+    div.style.cssText = 'background:#f9fafb;border-radius:8px;padding:16px;margin-bottom:12px';
+    div.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <span style="font-weight:500!important;font-size:13px!important">Question #${epFaqCount}</span>
+            <button type="button" onclick="removeEpFaq(this)"
+                style="color:#ef4444;font-size:12px!important;font-weight:500!important;background:none;border:none;cursor:pointer">Remove</button>
+        </div>
+        <div style="margin-bottom:12px">
+            <label style="font-size:12px!important;font-weight:500!important;color:#64748b;display:block;margin-bottom:4px">Question</label>
+            <p style="font-size:11px!important;color:#94a3b8;margin-bottom:4px">What customers might ask</p>
+            <input type="text" class="form-input" style="font-size:13px!important" placeholder="e.g., Is this product organic?">
+        </div>
+        <div>
+            <label style="font-size:12px!important;font-weight:500!important;color:#64748b;display:block;margin-bottom:4px">Answer</label>
+            <p style="font-size:11px!important;color:#94a3b8;margin-bottom:4px">Your response</p>
+            <textarea class="form-input" style="font-size:13px!important" rows="2" placeholder="e.g., Yes, it is 100% organic."></textarea>
+        </div>
+    `;
+    c.appendChild(div);
+}
+
+function removeEpFaq(btn) {
+    btn.closest('.ep-faq-item').remove();
+    if (!document.getElementById('epFaqContainer').children.length)
+        document.getElementById('epNoFAQ').classList.remove('hidden');
+}
+
+function resetEpDynamic() {
+    epVarietyCount = 0; epFaqCount = 0;
+    document.getElementById('epVarietyContainer').innerHTML = '';
+    document.getElementById('epFaqContainer').innerHTML = '';
+    document.getElementById('epNoVariety').classList.remove('hidden');
+    document.getElementById('epNoFAQ').classList.remove('hidden');
+    document.getElementById('epPreviewArea').innerHTML = '';
+    document.getElementById('epPreviewArea').classList.add('hidden');
+    document.getElementById('epUploadPlaceholder').classList.remove('hidden');
+    document.getElementById('epSearchRelated').value = '';
+}
+
+/* ── Related Products ── */
+const epAllProducts = [
+    {id:1,name:'Organic Bananas',category:'Fruits',   price:2.50,image:'https://via.placeholder.com/80/FFC107/FFFFFF?text=B'},
+    {id:2,name:'Whole Milk 1L',  category:'Dairy',    price:3.20,image:'https://via.placeholder.com/80/3B82F6/FFFFFF?text=M'},
+    {id:3,name:'Brown Eggs',     category:'Dairy',    price:4.99,image:'https://via.placeholder.com/80/F97316/FFFFFF?text=E'},
+    {id:4,name:'Wheat Bread',    category:'Bakery',   price:2.80,image:'https://via.placeholder.com/80/A16207/FFFFFF?text=B'},
+    {id:5,name:'Chicken',        category:'Meat',     price:12.5,image:'https://via.placeholder.com/80/EF4444/FFFFFF?text=C'},
+    {id:6,name:'Salmon',         category:'Seafood',  price:15.0,image:'https://via.placeholder.com/80/EAB308/FFFFFF?text=S'},
+    {id:7,name:'Orange Juice',   category:'Beverages',price:5.50,image:'https://via.placeholder.com/80/F97316/FFFFFF?text=O'},
+    {id:8,name:'Greek Yogurt',   category:'Dairy',    price:4.20,image:'https://via.placeholder.com/80/8B5CF6/FFFFFF?text=Y'},
+];
+let epSelectedRelated = [];
+const EP_MAX = 4;
+
+function renderEpRelated(products) {
+    const list = document.getElementById('epRelatedList');
+    list.innerHTML = '';
+    products.forEach(p => {
+        const selected = epSelectedRelated.includes(p.id);
+        const div = document.createElement('div');
+        div.className = `related-product-card ${selected ? 'selected' : ''}`;
+        div.onclick = () => toggleEpRelated(p.id);
+        div.innerHTML = `
+            <img src="${p.image}" alt="${p.name}">
+            <div style="flex:1;min-width:0">
+                <p style="font-size:12px!important;font-weight:600!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</p>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+                    <span style="font-size:11px!important;color:#64748b">${p.category}</span>
+                    <span style="width:1px;height:10px;background:#d1d5db;display:inline-block"></span>
+                    <span style="font-size:11px!important;font-weight:700!important;color:#16a34a">$${p.price.toFixed(2)}</span>
+                </div>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+}
+
+function toggleEpRelated(id) {
+    if (epSelectedRelated.includes(id)) {
+        epSelectedRelated = epSelectedRelated.filter(i => i !== id);
+    } else {
+        if (epSelectedRelated.length >= EP_MAX) { showToast(`Max ${EP_MAX} products allowed.`); return; }
+        epSelectedRelated.push(id);
+    }
+    renderEpTags();
+    filterEpRelated();
+}
+
+function renderEpTags() {
+    const c = document.getElementById('epSelectedTags');
+    c.innerHTML = '';
+    epSelectedRelated.forEach(id => {
+        const p = epAllProducts.find(x => x.id === id);
+        if (!p) return;
+        const tag = document.createElement('span');
+        tag.className = 'tag-pill fade-in';
+        tag.innerHTML = `
+            ${p.name}
+            <button type="button" onclick="event.stopPropagation();toggleEpRelated(${id})"
+                style="background:none;border:none;cursor:pointer;display:flex;align-items:center">
+                <svg style="width:12px;height:12px;color:#16a34a" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        `;
+        c.appendChild(tag);
+    });
+}
+
+function filterEpRelated() {
+    const q = document.getElementById('epSearchRelated').value.toLowerCase();
+    renderEpRelated(epAllProducts.filter(p => p.name.toLowerCase().includes(q)));
+}
+
+/* ── Toast ── */
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 2500);
+}
+</script>
+</body>
+</html>
