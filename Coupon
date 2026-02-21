@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coupon Management</title>
+<link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --accent: #16a34a;
+    --text:   #1e293b;
+    --muted:  #64748b;
+    --ghost:  #f1f5f9;   /* divider colour */
+    --bs:     #e2e8e0;
+    --amber:  #d97706;
+    --blue:   #2563eb;
+}
+* { margin:0; padding:0; box-sizing:border-box; color:var(--text); font-family:'IBM Plex Sans',sans-serif; }
+/* reset all font sizes explicitly via class, not global */
+body { background:#f4f7fa; padding:36px 0; font-size:14px; }
+
+/* ─────────────────────────────────────────
+   OVERVIEW  —  "Golden Ratio" table rules
+───────────────────────────────────────── */
+.page-wrap  { max-width:100%; padding:0 36px; }
+
+.page-header {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:28px;
+}
+.page-title {
+    font-size:18px; font-weight:700; font-family:'Plus Jakarta Sans';
+}
+
+.add-btn {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:10px 18px; background:var(--accent); color:#fff;
+    border:none; border-radius:8px; cursor:pointer;
+    font-size:13px; font-weight:600; transition:background .18s;
+}
+.add-btn:hover { background:#15803d; }
+.add-btn i { font-size:15px; color:#fff; }
+
+/* ── Table container: floating rows with real gap ── */
+.tbl { display:flex; flex-direction:column; gap:8px; }
+
+/* ── Equal 5 columns + fixed action ── */
+.tbl-row {
+    display:grid;
+    grid-template-columns: repeat(6, minmax(0,1fr));
+    padding: 0;          /* padding lives on each .col instead */
+    align-items: stretch; /* cells stretch full height for dividers */
+}
+
+/* Rule 3 – horizontal ghost divider under header */
+.tbl-head {
+    border-bottom: 1px solid var(--ghost);
+    margin-bottom: 4px;
+}
+
+/* Each cell carries its own padding + right border as the vertical divider */
+.col {
+    padding: 0 24px;         /* horizontal safe-margin per cell */
+    display: flex;
+    align-items: center;
+    border-right: 1px solid #eef2f6;   /* vertical divider line */
+}
+.col:last-child { border-right: none; } /* no divider after the last cell */
+
+/* Vertical rhythm */
+.tbl-head .col { padding-top: 12px; padding-bottom: 12px; }
+.tbl-body .col { padding-top: 20px; padding-bottom: 20px; }
+
+/* Header label style — no vertical dividers (no card behind header) */
+.tbl-head .col {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    border-right: none;
+}
+
+/* Body cell */
+.tbl-body .col { font-size: 14px; }
+
+/* Expiry & Action align right */
+.col-expiry { justify-content: flex-end; }
+.col-action { justify-content: flex-end; }
+
+/* floating row card */
+.tbl-body {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 0 0 1px var(--ghost);
+    overflow: hidden;      /* clips the dividers at the rounded corners */
+    transition: box-shadow .15s;
+}
+.tbl-body:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,.07), 0 0 0 1px #e2e8f0;
+}
+
+/* code cell */
+.code-val {
+    font-size: 13px; font-weight: 700; letter-spacing: .7px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* bracket text */
+.bk {
+    font-size: 13px; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: block;
+}
+.c-amber { color: var(--amber); }
+.c-blue  { color: var(--blue);  }
+.c-green { color: var(--accent);}
+.c-muted { color: #94a3b8;      }
+
+/* action icons */
+.act-wrap { display:flex; gap:14px; justify-content:flex-end; }
+.act-wrap i {
+    font-size: 17px; color:#94a3b8; cursor:pointer; transition:color .15s;
+}
+.act-wrap i:hover { color: var(--text); }
+
+
+/* ─────────────────────────────────────────
+   ADD / EDIT PAGE
+───────────────────────────────────────── */
+#editPage { display:none; padding:36px 0; }
+#editPage.show { display:block; }
+
+.edit-wrap { max-width:560px; margin:0 auto; padding:0 24px; }
+
+.back-header {
+    display:flex; align-items:center; gap:10px; margin-bottom:24px;
+}
+.back-btn {
+    background:none; border:none; cursor:pointer; padding:0;
+    display:flex; align-items:center;
+}
+.back-btn i { font-size:20px; color:var(--muted); }
+.back-title { font-size:19px; font-weight:700; font-family:'Plus Jakarta Sans'; }
+.back-sub   { font-size:12px; color:#94a3b8; margin-top:2px; }
+
+/* form card */
+.fc {
+    background:#fff; border:1px solid var(--bs);
+    border-radius:12px; padding:24px; margin-bottom:16px;
+}
+.fc-label {
+    font-size:11px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.08em; color:var(--muted); margin-bottom:16px;
+}
+
+/* field */
+.field { margin-bottom:14px; }
+.field:last-child { margin-bottom:0; }
+.fl { display:block; font-size:12px; font-weight:500; color:var(--muted); margin-bottom:5px; }
+
+/* custom select */
+.sel-wrap { position:relative; }
+.sel-wrap select {
+    width:100%; padding:10px 36px 10px 14px; background:#fff;
+    border:1.5px solid var(--bs); border-radius:8px;
+    appearance:none; -webkit-appearance:none; cursor:pointer;
+    font-size:14px; outline:none; transition:border-color .18s;
+    font-family:'IBM Plex Sans',sans-serif;
+}
+.sel-wrap select:focus { border-color:var(--accent); }
+.sel-wrap::after {
+    content:''; position:absolute; right:13px; top:50%;
+    transform:translateY(-50%) rotate(45deg);
+    width:7px; height:7px;
+    border-right:2px solid #94a3b8; border-bottom:2px solid #94a3b8;
+    pointer-events:none;
+}
+
+/* text input */
+.fi {
+    width:100%; padding:10px 14px; background:#fff;
+    border:1.5px solid var(--bs); border-radius:8px;
+    font-size:14px; font-family:'IBM Plex Sans',sans-serif;
+    outline:none; transition:border-color .18s;
+}
+.fi:focus { border-color:var(--accent); }
+
+/* prefix input */
+.px-wrap  { position:relative; }
+.px-pre   { position:absolute; top:50%; left:13px; transform:translateY(-50%); font-weight:700; font-size:13px; pointer-events:none; }
+.has-px   { padding-left:28px !important; }
+
+/* two-col row */
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+/* picker section */
+.picker-section {
+    margin-top:14px; padding-top:14px;
+    border-top:1px solid var(--ghost);
+}
+.picker-label {
+    font-size:11px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.08em; color:#94a3b8; margin-bottom:10px;
+}
+
+/* product cards */
+.prod-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.prod-card {
+    display:flex; align-items:center; gap:10px; padding:9px 10px;
+    border:1.5px solid var(--bs); border-radius:8px;
+    cursor:pointer; transition:all .18s; background:#fff;
+}
+.prod-card:hover  { border-color:#94a3b8; }
+.prod-card.on     { border-color:var(--accent); background:#f0fdf4; }
+.prod-card img    { width:36px; height:36px; border-radius:6px; object-fit:cover; flex-shrink:0; }
+.prod-card .pn    { font-size:12px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.prod-card .pp    { font-size:11px; color:var(--accent); font-weight:600; }
+.p-chk {
+    margin-left:auto; width:16px; height:16px; border-radius:4px;
+    border:1.5px solid #cbd5e1; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; transition:all .18s;
+}
+.prod-card.on .p-chk { background:var(--accent); border-color:var(--accent); }
+.prod-card.on .p-chk::after { content:'✓'; font-size:9px; color:#fff; }
+
+/* category chips */
+.cat-chips { display:flex; flex-wrap:wrap; gap:8px; }
+.cat-chip {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:7px 14px; border:1.5px solid var(--bs); border-radius:8px;
+    cursor:pointer; font-size:12px; font-weight:500;
+    background:#fff; transition:all .18s;
+}
+.cat-chip:hover { border-color:#94a3b8; }
+.cat-chip.on    { border-color:var(--accent); background:#f0fdf4; }
+.cat-chip.on span.ct { color:var(--accent); }
+.c-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+
+/* buttons */
+.btn-row  { display:flex; gap:10px; margin-top:4px; }
+.btn-save {
+    flex:1; padding:12px; background:var(--accent); color:#fff;
+    border:none; border-radius:8px; font-size:14px; font-weight:600;
+    cursor:pointer; transition:background .18s;
+}
+.btn-save:hover { background:#15803d; }
+.btn-cancel {
+    flex:1; padding:12px; background:#fff; color:var(--muted);
+    border:1.5px solid var(--bs); border-radius:8px; font-size:14px; font-weight:500;
+    cursor:pointer; transition:all .18s;
+}
+.btn-cancel:hover { background:#f8faf8; }
+
+/* toast */
+#toast {
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:#334155; color:#fff; padding:10px 22px;
+    border-radius:8px; font-size:13px; display:none; z-index:999;
+}
+
+@keyframes fi { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+.fi-in { animation:fi .2s ease-out; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     OVERVIEW PAGE
+═══════════════════════════════════════════ -->
+<div id="overviewPage">
+<div class="page-wrap">
+
+    <div class="page-header">
+        <div class="page-title">Coupon Management</div>
+        <button class="add-btn" onclick="openEdit(null)">
+            <i class="ri-add-line"></i> Add Coupon
+        </button>
+    </div>
+
+    <!-- Table -->
+    <div class="tbl">
+
+        <!-- Header row -->
+        <div class="tbl-row tbl-head">
+            <div class="col">Code</div>
+            <div class="col">Type</div>
+            <div class="col">Discount</div>
+            <div class="col">Applies To</div>
+            <div class="col col-expiry">Expiry</div>
+            <div class="col col-action">Action</div>
+        </div>
+
+        <!-- Data Row 1 -->
+        <div class="tbl-row tbl-body coupon-row"
+             data-code="SUMMER20" data-type="pct" data-value="20" data-scope="all" data-expiry="2025-08-31">
+            <div class="col"><span class="code-val">SUMMER20</span></div>
+            <div class="col"><span class="bk c-amber">[% Percentage]</span></div>
+            <div class="col"><span class="bk c-amber">[20% Off]</span></div>
+            <div class="col"><span class="bk c-green">[All Products]</span></div>
+            <div class="col col-expiry"><span class="bk c-muted">[Aug 31, 2025]</span></div>
+            <div class="col col-action">
+                <div class="act-wrap">
+                    <i class="ri-pencil-line" onclick="openEdit(this.closest('.coupon-row'))"></i>
+                    <i class="ri-delete-bin-line" onclick="this.closest('.coupon-row').remove()"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Row 2 -->
+        <div class="tbl-row tbl-body coupon-row"
+             data-code="FLAT15" data-type="fixed" data-value="15" data-scope="products" data-expiry="2025-07-15">
+            <div class="col"><span class="code-val">FLAT15</span></div>
+            <div class="col"><span class="bk c-blue">[$ Fixed]</span></div>
+            <div class="col"><span class="bk c-blue">[$15 Off]</span></div>
+            <div class="col"><span class="bk c-blue">[Specific Products]</span></div>
+            <div class="col col-expiry"><span class="bk c-muted">[Jul 15, 2025]</span></div>
+            <div class="col col-action">
+                <div class="act-wrap">
+                    <i class="ri-pencil-line" onclick="openEdit(this.closest('.coupon-row'))"></i>
+                    <i class="ri-delete-bin-line" onclick="this.closest('.coupon-row').remove()"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Row 3 — no expiry -->
+        <div class="tbl-row tbl-body coupon-row"
+             data-code="BAKERY10" data-type="pct" data-value="10" data-scope="categories" data-expiry="">
+            <div class="col"><span class="code-val">BAKERY10</span></div>
+            <div class="col"><span class="bk c-amber">[% Percentage]</span></div>
+            <div class="col"><span class="bk c-amber">[10% Off]</span></div>
+            <div class="col"><span class="bk c-blue">[Specific Categories]</span></div>
+            <div class="col col-expiry"><span class="bk c-muted">[Not Applied]</span></div>
+            <div class="col col-action">
+                <div class="act-wrap">
+                    <i class="ri-pencil-line" onclick="openEdit(this.closest('.coupon-row'))"></i>
+                    <i class="ri-delete-bin-line" onclick="this.closest('.coupon-row').remove()"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Row 4 — no expiry -->
+        <div class="tbl-row tbl-body coupon-row"
+             data-code="WELCOME50" data-type="fixed" data-value="50" data-scope="all" data-expiry="">
+            <div class="col"><span class="code-val">WELCOME50</span></div>
+            <div class="col"><span class="bk c-blue">[$ Fixed]</span></div>
+            <div class="col"><span class="bk c-blue">[$50 Off]</span></div>
+            <div class="col"><span class="bk c-green">[All Products]</span></div>
+            <div class="col col-expiry"><span class="bk c-muted">[Not Applied]</span></div>
+            <div class="col col-action">
+                <div class="act-wrap">
+                    <i class="ri-pencil-line" onclick="openEdit(this.closest('.coupon-row'))"></i>
+                    <i class="ri-delete-bin-line" onclick="this.closest('.coupon-row').remove()"></i>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /.tbl -->
+</div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════
+     ADD / EDIT PAGE
+═══════════════════════════════════════════ -->
+<div id="editPage">
+<div class="edit-wrap">
+
+    <div class="back-header">
+        <button class="back-btn" onclick="closeEdit()">
+            <i class="ri-arrow-left-line"></i>
+        </button>
+        <div>
+            <div id="pageTitle" class="back-title">Add Coupon</div>
+            <div class="back-sub">Configure your discount coupon</div>
+        </div>
+    </div>
+
+    <form id="couponForm">
+
+        <!-- ① Coupon Details -->
+        <div class="fc">
+            <div class="fc-label">Coupon Details</div>
+
+            <div class="field">
+                <label class="fl">Coupon Code</label>
+                <input type="text" id="epCode" class="fi" placeholder="e.g., SUMMER20"
+                       style="text-transform:uppercase;letter-spacing:.6px" oninput="syncCode()">
+            </div>
+
+            <div class="two-col field">
+                <div>
+                    <label class="fl">Coupon Type</label>
+                    <div class="sel-wrap">
+                        <select id="epType" onchange="onTypeChange()">
+                            <option value="pct">% Percentage Off</option>
+                            <option value="fixed">$ Fixed Amount Off</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="fl" id="valLabel">Discount Percentage</label>
+                    <div class="px-wrap">
+                        <span class="px-pre" id="valPre" style="color:var(--amber)">%</span>
+                        <input type="number" id="epValue" class="fi has-px" placeholder="20" min="1">
+                    </div>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="fl">
+                    Expiry Date
+                    <span style="color:#cbd5e1;font-size:11px;font-weight:400;margin-left:4px">(optional)</span>
+                </label>
+                <input type="date" id="epExpiry" class="fi">
+            </div>
+        </div>
+
+        <!-- ② Applies To -->
+        <div class="fc">
+            <div class="fc-label">Applies To</div>
+
+            <div class="field">
+                <label class="fl">Scope</label>
+                <div class="sel-wrap">
+                    <select id="epScope" onchange="onScopeChange()">
+                        <option value="all">All Products</option>
+                        <option value="products">Specific Products</option>
+                        <option value="categories">Specific Categories</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- product picker -->
+            <div id="pickerProducts" class="picker-section" style="display:none">
+                <div class="picker-label">Select Products</div>
+                <div class="prod-grid" id="productGrid"></div>
+            </div>
+
+            <!-- category picker -->
+            <div id="pickerCategories" class="picker-section" style="display:none">
+                <div class="picker-label">Select Categories</div>
+                <div class="cat-chips" id="categoryGrid"></div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="btn-row">
+            <button type="button" class="btn-cancel" onclick="closeEdit()">Cancel</button>
+            <button type="submit" class="btn-save">Save Coupon</button>
+        </div>
+
+    </form>
+</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ── data ── */
+const products = [
+    { id:1, name:'Organic Red Apples', price:'$2.50', img:'https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?w=80' },
+    { id:2, name:'Whole Milk 1L',      price:'$3.20', img:'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=80' },
+    { id:3, name:'Sourdough Bread',    price:'$4.00', img:'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=80' },
+    { id:4, name:'Brown Eggs',         price:'$4.99', img:'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=80' },
+    { id:5, name:'Greek Yogurt',       price:'$4.20', img:'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=80' },
+    { id:6, name:'Orange Juice',       price:'$5.50', img:'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=80' },
+    { id:7, name:'Chicken Breast',     price:'$12.50',img:'https://images.unsplash.com/photo-1604503468506-a8da13d11d36?w=80' },
+    { id:8, name:'Wheat Bread',        price:'$2.80', img:'https://images.unsplash.com/photo-1574085733277-851d9d856a3a?w=80' },
+];
+const categories = [
+    { name:'Fruits & Vegetables', color:'#16a34a' },
+    { name:'Dairy & Eggs',        color:'#2563eb' },
+    { name:'Bakery',              color:'#d97706' },
+    { name:'Meat & Seafood',      color:'#dc2626' },
+    { name:'Beverages',           color:'#7c3aed' },
+    { name:'Snacks',              color:'#0891b2' },
+    { name:'Frozen Foods',        color:'#0284c7' },
+];
+
+let currentRow = null, pickedProducts = [], pickedCategories = [];
+
+/* ── open / close ── */
+function openEdit(row) {
+    currentRow = row;
+    resetForm();
+    if (row) {
+        const d = row.dataset;
+        document.getElementById('pageTitle').textContent = 'Edit Coupon';
+        document.getElementById('epCode').value   = d.code   || '';
+        document.getElementById('epValue').value  = d.value  || '';
+        document.getElementById('epExpiry').value = d.expiry || '';
+        document.getElementById('epType').value   = d.type   || 'pct';
+        document.getElementById('epScope').value  = d.scope  || 'all';
+        onTypeChange(); onScopeChange();
+    } else {
+        document.getElementById('pageTitle').textContent = 'Add Coupon';
+        document.getElementById('epType').value  = 'pct';
+        document.getElementById('epScope').value = 'all';
+        onTypeChange(); onScopeChange();
+    }
+    document.getElementById('overviewPage').style.display = 'none';
+    document.getElementById('editPage').classList.add('show');
+    window.scrollTo(0,0);
+}
+
+function closeEdit() {
+    document.getElementById('editPage').classList.remove('show');
+    document.getElementById('overviewPage').style.display = 'block';
+    window.scrollTo(0,0);
+}
+
+function resetForm() {
+    document.getElementById('couponForm').reset();
+    pickedProducts = []; pickedCategories = [];
+    renderProductGrid(); renderCategoryGrid();
+}
+
+function syncCode() {
+    const el = document.getElementById('epCode');
+    el.value = el.value.toUpperCase();
+}
+
+/* ── type change ── */
+function onTypeChange() {
+    const t = document.getElementById('epType').value;
+    if (t === 'pct') {
+        document.getElementById('valLabel').textContent = 'Discount Percentage';
+        document.getElementById('valPre').textContent   = '%';
+        document.getElementById('valPre').style.color   = 'var(--amber)';
+    } else {
+        document.getElementById('valLabel').textContent = 'Discount Amount';
+        document.getElementById('valPre').textContent   = '$';
+        document.getElementById('valPre').style.color   = 'var(--blue)';
+    }
+}
+
+/* ── scope change ── */
+function onScopeChange() {
+    const s = document.getElementById('epScope').value;
+    document.getElementById('pickerProducts').style.display   = s === 'products'   ? 'block' : 'none';
+    document.getElementById('pickerCategories').style.display = s === 'categories' ? 'block' : 'none';
+}
+
+/* ── product grid ── */
+function renderProductGrid() {
+    const g = document.getElementById('productGrid');
+    g.innerHTML = '';
+    products.forEach(p => {
+        const on = pickedProducts.includes(p.id);
+        const c  = document.createElement('div');
+        c.className = `prod-card ${on ? 'on' : ''}`;
+        c.onclick = () => { toggleArr(pickedProducts, p.id); renderProductGrid(); };
+        c.innerHTML = `
+            <img src="${p.img}" alt="${p.name}">
+            <div style="flex:1;min-width:0">
+                <div class="pn">${p.name}</div>
+                <div class="pp">${p.price}</div>
+            </div>
+            <div class="p-chk"></div>`;
+        g.appendChild(c);
+    });
+}
+
+/* ── category chips ── */
+function renderCategoryGrid() {
+    const g = document.getElementById('categoryGrid');
+    g.innerHTML = '';
+    categories.forEach(cat => {
+        const on = pickedCategories.includes(cat.name);
+        const c  = document.createElement('div');
+        c.className = `cat-chip ${on ? 'on' : ''}`;
+        c.onclick = () => { toggleArr(pickedCategories, cat.name); renderCategoryGrid(); };
+        c.innerHTML = `<span class="c-dot" style="background:${cat.color}"></span><span class="ct">${cat.name}</span>`;
+        g.appendChild(c);
+    });
+}
+
+function toggleArr(a, v) { const i=a.indexOf(v); i===-1?a.push(v):a.splice(i,1); }
+
+/* ── save ── */
+document.getElementById('couponForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const code   = document.getElementById('epCode').value.trim().toUpperCase();
+    const type   = document.getElementById('epType').value;
+    const val    = document.getElementById('epValue').value.trim();
+    const expiry = document.getElementById('epExpiry').value;
+    const scope  = document.getElementById('epScope').value;
+
+    if (!code) { showToast('Please enter a coupon code.'); return; }
+    if (!val)  { showToast('Please enter a discount value.'); return; }
+
+    const tc       = type === 'pct' ? 'c-amber' : 'c-blue';
+    const typeTxt  = type === 'pct' ? '[% Percentage]' : '[$ Fixed]';
+    const discTxt  = type === 'pct' ? `[${val}% Off]`  : `[$${val} Off]`;
+    const scopeTxt = { all:'[All Products]', products:'[Specific Products]', categories:'[Specific Categories]' }[scope];
+    const scopeC   = { all:'c-green', products:'c-blue', categories:'c-blue' }[scope];
+    const expTxt   = expiry
+        ? `[${new Date(expiry+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}]`
+        : '[Not Applied]';
+
+    if (currentRow) {
+        const cols = currentRow.querySelectorAll('.col');
+        cols[0].innerHTML = `<span class="code-val">${code}</span>`;
+        cols[1].innerHTML = `<span class="bk ${tc}">${typeTxt}</span>`;
+        cols[2].innerHTML = `<span class="bk ${tc}">${discTxt}</span>`;
+        cols[3].innerHTML = `<span class="bk ${scopeC}">${scopeTxt}</span>`;
+        cols[4].innerHTML = `<span class="bk c-muted">${expTxt}</span>`;
+        Object.assign(currentRow.dataset, { code, type, value:val, scope, expiry });
+        showToast('Coupon updated!');
+    } else {
+        const row = document.createElement('div');
+        row.className = 'tbl-row tbl-body coupon-row fi-in';
+        Object.assign(row.dataset, { code, type, value:val, scope, expiry });
+        row.innerHTML = `
+            <div class="col"><span class="code-val">${code}</span></div>
+            <div class="col"><span class="bk ${tc}">${typeTxt}</span></div>
+            <div class="col"><span class="bk ${tc}">${discTxt}</span></div>
+            <div class="col"><span class="bk ${scopeC}">${scopeTxt}</span></div>
+            <div class="col col-expiry"><span class="bk c-muted">${expTxt}</span></div>
+            <div class="col col-action">
+                <div class="act-wrap">
+                    <i class="ri-pencil-line" onclick="openEdit(this.closest('.coupon-row'))"></i>
+                    <i class="ri-delete-bin-line" onclick="this.closest('.coupon-row').remove()"></i>
+                </div>
+            </div>`;
+        document.querySelector('.tbl').appendChild(row);
+        showToast('Coupon added!');
+    }
+    closeEdit();
+});
+
+function showToast(m) {
+    const t = document.getElementById('toast');
+    t.textContent = m; t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 2500);
+}
+
+renderProductGrid();
+renderCategoryGrid();
+</script>
+</body>
+</html>
